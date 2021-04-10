@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>瀑布流新闻</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+    <style>
+        *{
+            padding: 0;
+        }
+        ul,
+        li {
+            list-style: none;
+        }
+
+        ul {
+            position: relative;
+            width: 846px;
+            margin: 0 auto; 
+        }
+
+        li {
+            position: absolute;
+            margin-top: 5px;
+            width: 280px;
+            text-align: center;
+            border: 1px solid #DFDFDF;
+            border
+        }
+
+        li img {
+            width: 260px;
+            padding-top: 10px;
+        }
+
+        .item h4,
+        .item p {
+            width: 260px;
+            margin: 0 auto;
+            left: 0;
+        }
+
+        .item h4 {
+            margin-top: 12px;
+            text-align: left;
+        }
+
+        .item p {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="newsView">
+        <ul class="newsList">
+        </ul>
+        <div class="load"></div>
+    </div>
+    <script>
+        var page = 1;
+        var isloading = false;
+        var heightArr = [0, 0, 0]
+        var cont = 3;
+        var nodeWidth = 282;
+
+        getData(function (res) {
+            loadData(res)
+        })
+        scroll()
+
+
+        function getData(calback) {
+            isloading = true;
+            $.ajax({
+                type: "GET",
+                url: "https://photo.sina.cn/aj/v2/index?cate=military",
+                data: {
+                    page: page,
+                    pagesize: 10
+                },
+                dataType: "jsonp",
+            }).done(function (res) {
+                calback(res);
+                isloading = false;
+                page++;
+            }).fail(function () {
+                $('.newsList').append('<h1>404</h1>')
+                $('newsList').append('<p>服务器异常</p>')
+            })
+        }
+
+        function loadData(res) {
+            res.data.forEach(function (e, idx) {
+                let node = createNode(e)
+                node.find('img').on('load', function () {
+                    $('ul').append(node)
+                    waterFalls(node)
+                })
+            });
+        }
+
+        function createNode(data) {
+            let string = $(`<li class="item">
+                <a href="#">
+                <img src="" alt="">
+            </a>
+                <h4>1234</h4>
+                <p>段落</p>
+            </li>`)
+            $(string).find('h4').text(data.stitle)
+            $(string).find('p').text(data.title)
+            $(string).find('img').attr('src', data.thumb);
+            $(string).find('a').attr('href', data.url);
+            return string;
+        }
+
+        function waterFalls(node) {
+            var minValue = heightArr[0]
+            var minidx = 0
+            for (i = 0; i < cont; i++) {
+                if (heightArr[i] < minValue) {
+                    minValue = heightArr[i];
+                    minidx = i
+                }
+            }
+            console.log(heightArr)
+            node.css({
+                "left": minidx * nodeWidth + 'px',
+                "top": minValue
+            })
+            heightArr[minidx] += node.outerHeight(true)
+            $('.newsList').height(Math.max.apply(null, heightArr));
+            console.log(heightArr)
+        }
+
+        function isBottom() {
+            return $(window).height() + $(window).scrollTop() + 10 > $('.load').offset().top
+        }
+
+        function scroll() {
+            $(window).scroll(function () {
+                if (isBottom() && !isloading) {
+                    getData(function (res) {
+                        var node = loadData(res)
+                    })
+                }
+            })
+        }
+    </script>
+</body>
+
+</html>
